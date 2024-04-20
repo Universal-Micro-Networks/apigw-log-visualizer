@@ -33,7 +33,7 @@ class ApigwLog:
         bucket = f"{environment}-iapigw-access-logs"
         prefixes = self._get_prefixes(start_date, end_date)
         files = self._get_s3_objects(bucket, prefixes, marker)
-        self._save_logfile_to_csv(files)
+        self._save_logfile_to_json(files)
 
     def _get_prefixes(
         self, start_date: datetime, end_date: datetime
@@ -102,7 +102,7 @@ class ApigwLog:
                 if is_truncated is False:
                     break
 
-    def _save_logfile_to_csv(
+    def _save_logfile_to_json(
         self, _files: Generator[gzip.GzipFile | TextIO, Any, None]
     ):
         """save log file to csv
