@@ -18,6 +18,11 @@ poetry install
 poetry run pre-commit install
 ```
 
+## Docker関連コマンド
+
+make docker-up
+make docker-reset
+
 ### blackの設定
 
 コミット時にチェックするため設定は任意ですが、事前に設定しておくと保存時に都度フォーマットをかけてくれるので便利です。
