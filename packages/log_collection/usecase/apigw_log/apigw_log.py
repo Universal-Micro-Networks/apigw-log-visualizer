@@ -1,3 +1,4 @@
+import glob
 import gzip
 import io
 import os
@@ -107,10 +108,25 @@ class ApigwLog:
         for file in _files:
             randam_filename = uuid.uuid4()
             os.makedirs("logs", exist_ok=True)
-            with open(f"logs/{randam_filename}.csv", mode="w", encoding="UTF-8") as f:
+            with open(f"logs/{randam_filename}.json", mode="w", encoding="UTF-8") as f:
                 rows = file.readlines()
+                is_first = True
+                f.write("[")
                 for row in rows:
-                    f.write(str(row))
+                    if " " in str(row):
+                        if is_first:
+                            is_first = False
+                        else:
+                            f.write(",")
+                        json_obj = str(row).split(" ", 1)[1] + ","
+                        f.write(json_obj)
+                f.write("]")
+
+    def load_to_db(self) -> None:
+        """load log data to DB"""
+        files = glob.glob("logs/*.json")
+        for file in files:
+            print(file)
 
 
 class ApigwLogError(Exception):
