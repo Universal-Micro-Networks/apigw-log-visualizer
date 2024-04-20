@@ -4,7 +4,7 @@ version = "0.1.0"
 description = ""
 authors = ["Tadashi Takahashi <ttakahashi@umn.co.jp>"]
 readme = "README.md"
-packages = [{include = "log_collection", from = "src"}]
+packages = [{include = "log_collection", from = "packages"}, {include = "shared", from = "packages"}]
 
 [tool.poetry.dependencies]
 python = "^3.12"

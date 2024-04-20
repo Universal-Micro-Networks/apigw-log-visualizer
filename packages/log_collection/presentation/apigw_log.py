@@ -1,9 +1,13 @@
+"""_summary_
+"""
+
 from datetime import datetime
 
-from src.log_collection.usecase.apigw_log.apigw_log import ApigwLog
+from packages.log_collection.usecase.apigw_log.apigw_log import ApigwLog
 
 
 def main():
+    """_summary_"""
     start_date = datetime(2024, 2, 1)
     end_date = datetime(2024, 4, 17)
     marker = ""

@@ -12,19 +12,35 @@ from botocore.exceptions import RefreshWithMFAUnsupportedError
 class ApigwLog:
     s3 = boto3.client("s3", region_name="ap-northeast-1")
 
-    def fatch_from_s3(self, environment: str, start_date: datetime, end_date: datetime, marker: str):
+    def fatch_from_s3(
+        self, environment: str, start_date: datetime, end_date: datetime, marker: str
+    ):
+        """fetch log files from S3
+
+        Args:
+            environment (str): environment name i.e. prod, stg, dev
+            start_date (datetime): date after when log files are collected
+            end_date (datetime): date before when log files are collected
+            marker (str, optional): S3 marker to restart this function where ended last time. Defaults to "".
+        """
         environment = "prod"
         bucket = f"{environment}-iapigw-access-logs"
         prefixes = self._get_prefixes(start_date, end_date)
         files = self._get_s3_objects(bucket, prefixes, marker)
         self._save_logfile_to_csv(files)
 
-    def load(self):
-        pass
-
     def _get_prefixes(
         self, start_date: datetime, end_date: datetime
     ) -> Generator[str, Any, None]:
+        """Get S3 prefixes
+
+        Args:
+            start_date (datetime): date after when log files are collected
+            end_date (datetime): date before when log files are collected
+
+        Yields:
+            Generator[str, Any, None]: S3 prefix generator
+        """
         days = (end_date - start_date).days
         date_list = map(lambda x, y=start_date: y + timedelta(days=x), range(days))
         for d in date_list:
@@ -33,6 +49,18 @@ class ApigwLog:
     def _get_s3_objects(
         self, _bucket, _prefixes: Generator[str, Any, None], _marker: str = ""
     ) -> Generator[gzip.GzipFile | TextIO, Any, None]:
+        """Get log files from S3
+
+        Args:
+            _bucket (_type_): S3 Backet Name
+            _prefixes (Generator[str, Any, None]): S3 prefix list
+            _marker (str, optional): S3 marker to restart this function where ended last time. Defaults to "".
+
+        Raises:
+            ApigwLogError: Raise when MFA token is expired or gzip file is invalid.
+        Yields:
+            Generator[gzip.GzipFile | TextIO, Any, None]: uncompressed log file generator
+        """
         for prefix in _prefixes:
             print(f"{_bucket}:{prefix}")
             while True:
@@ -54,14 +82,14 @@ class ApigwLog:
                         except RefreshWithMFAUnsupportedError as e:
                             raise ApigwLogError(
                                 f"MFAの有効期限切れの可能性があります。再開するには以下の設定をしてください。\n\n開始日:{prefix} marker:{_marker}"
-                            )
+                            ) from e
 
                         # main
                         if _valid_gzip_format(obj):
                             with gzip.open(io.BytesIO(obj), "rt") as file:
                                 yield file
                         else:
-                            raise Exception(
+                            raise ApigwLogError(
                                 "ファイル拡張子(.gz)に対して圧縮形式が正しくありません。"
                             )
 
@@ -71,28 +99,53 @@ class ApigwLog:
     def _save_logfile_to_csv(
         self, _files: Generator[gzip.GzipFile | TextIO, Any, None]
     ):
+        """save log file to csv
+
+        Args:
+            _files (Generator[gzip.GzipFile  |  TextIO, Any, None]): log file
+        """
         for file in _files:
             randam_filename = uuid.uuid4()
-            os.makedirs(f"logs", exist_ok=True)
-            with open(f"logs/{randam_filename}.csv", mode="w") as f:
+            os.makedirs("logs", exist_ok=True)
+            with open(f"logs/{randam_filename}.csv", mode="w", encoding="UTF-8") as f:
                 rows = file.readlines()
                 for row in rows:
                     f.write(str(row))
 
-    def _save_to_csv(self, f, _rows):
-        for row in _rows:
-            f.write(row)
-
 
 class ApigwLogError(Exception):
+    """API Gateway Log Error
+
+    Args:
+        Exception (_type_): Base Exception
+    """
+
     def __init__(self, message: str):
+        """_summary_
+
+        Args:
+            message (str): _description_
+        """
         self.message = message
 
     def __str__(self):
+        """_summary_
+
+        Returns:
+            _type_: _description_
+        """
         return self.message
 
 
 def _valid_gzip_format(file_obj: bytes):
+    """Check if gzip file format is valid
+
+    Args:
+        file_obj (bytes): gzip file object
+
+    Returns:
+        _type_: True if valid, False if invalid
+    """
     with gzip.open(io.BytesIO(file_obj), "rt") as testing_file:
         try:
             testing_file.read()
@@ -102,6 +155,14 @@ def _valid_gzip_format(file_obj: bytes):
 
 
 def _try_conv_str_to_int(challenge: str) -> int:
+    """Try to convert a string to an integer
+
+    Args:
+        challenge (str): string to convert to integer
+
+    Returns:
+        int: converted integer
+    """
     try:
         return int(challenge)
     except ValueError:
