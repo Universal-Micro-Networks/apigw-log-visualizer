@@ -5,10 +5,11 @@ This module contains the ApigwLog domain model.
 import datetime
 import uuid
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+from pydantic.alias_generators import to_camel
 
 
-class ApigwLog(BaseModel):
+class ApigwLogSchema(BaseModel):
     """
     This class represents the ApigwLog domain model.
 
@@ -16,6 +17,7 @@ class ApigwLog(BaseModel):
         BaseModel (_type_): pydantic BaseModel
     """
 
+    model_config = ConfigDict(alias_generator=to_camel)
     request_id: uuid.UUID
     api_key: str
     api_key_id: str
@@ -29,7 +31,7 @@ class ApigwLog(BaseModel):
     path: str
     resource_path: str
     user_agent: str
-    status: str
+    status: int
     response_latency: int
     error_message: str
     response_type: str
@@ -57,7 +59,7 @@ class ApigwLog(BaseModel):
         path: str,
         resource_path: str,
         user_agent: str,
-        status: str,
+        status: int,
         response_latency: int,
         error_message: str,
         response_type: str,
@@ -68,7 +70,7 @@ class ApigwLog(BaseModel):
         ip: str,
         caller: str,
         user: str,
-    ) -> "ApigwLog":
+    ) -> "ApigwLogSchema":
         """_summary_
 
         Args:
@@ -100,7 +102,7 @@ class ApigwLog(BaseModel):
         Returns:
             ApigwLog: ApiGwLog object
         """
-        return ApigwLog(
+        return ApigwLogSchema(
             request_id=request_id,
             api_key=api_key,
             api_key_id=api_key_id,

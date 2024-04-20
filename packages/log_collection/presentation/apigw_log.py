@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 from datetime import datetime
 from enum import Enum
 
@@ -10,7 +11,7 @@ class BatchType(Enum):
     LOAD_LOG = "load_log"
 
 
-def execute(batch_type: BatchType):
+async def execute(batch_type: BatchType) -> None:
     """execute batch process designated by batch_type"""
     apigw_log = ApigwLog()
     if batch_type == BatchType.FETCH_LOG:
@@ -20,7 +21,7 @@ def execute(batch_type: BatchType):
 
         apigw_log.fatch_from_s3("prod", start_date, end_date, marker)
     elif batch_type == BatchType.LOAD_LOG:
-        apigw_log.load_to_db()
+        await apigw_log.load_to_db()
 
 
 if __name__ == "__main__":
@@ -28,4 +29,5 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--type", required=True)
     args = parser.parse_args()
 
-    execute(BatchType(args.type))
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(execute(BatchType(args.type)))

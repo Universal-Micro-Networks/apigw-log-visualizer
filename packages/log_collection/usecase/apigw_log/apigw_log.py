@@ -1,6 +1,7 @@
 import glob
 import gzip
 import io
+import json
 import os
 import uuid
 from datetime import datetime, timedelta
@@ -8,6 +9,10 @@ from typing import Any, Generator, TextIO
 
 import boto3
 from botocore.exceptions import RefreshWithMFAUnsupportedError
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+from packages.log_collection.domain.apigw_log.apigw_log_schema import ApigwLogSchema
+from packages.log_collection.infra.model.access_log import AccessLog as AccessLogModel
 
 
 class ApigwLog:
@@ -122,11 +127,34 @@ class ApigwLog:
                         f.write(json_obj)
                 f.write("]")
 
-    def load_to_db(self) -> None:
+    async def load_to_db(self) -> None:
         """load log data to DB"""
+        engine = create_async_engine(
+            "postgresql+asyncpg://log_analysis_user:Fq3MdiTt@localhost/log_analysis_db",
+            echo=False,
+        )
+        async_session = async_sessionmaker(engine, expire_on_commit=False)
+
         files = glob.glob("logs/*.json")
         for file in files:
-            print(file)
+            with open(file, mode="r", encoding="UTF-8") as f:
+                log_dict_list = json.load(f)
+                for log_dict in log_dict_list:
+                    log_dict["requestTime"] = datetime.fromtimestamp(
+                        int(log_dict["requestTimeEpoch"]) / 1000
+                    )
+                    log_dict["integrationStatus"] = _try_conv_str_to_int(
+                        log_dict["integrationStatus"]
+                    )
+                    log_dict["integrationLatency"] = _try_conv_str_to_int(
+                        log_dict["integrationLatency"]
+                    )
+                    access_log_data = ApigwLogSchema(**log_dict)
+                    async with async_session() as session:
+                        async with session.begin():
+                            access_log_model = AccessLogModel(**access_log_data.dict())
+                            session.add(access_log_model)
+                        await session.commit()
 
 
 class ApigwLogError(Exception):
