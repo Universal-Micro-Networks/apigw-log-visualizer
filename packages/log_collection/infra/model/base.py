@@ -1,5 +1,3 @@
-from typing import Any
-
 from sqlalchemy import MetaData
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -10,16 +8,12 @@ convention = {
     "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
     "pk": "pk_%(table_name)s",
 }
-metadata = MetaData(naming_convention=convention)
+metadata = MetaData(naming_convention=convention, schema="log_analysis")
 _Base = declarative_base(metadata=metadata)
 
 
 class Base(_Base):  # type: ignore
     __abstract__ = True
-
-    def __init__(self, **kw: Any):
-        super().__init__(**kw)
-        self.metadata = MetaData(schema="log_analysis_user")
 
     def __repr__(self) -> str:
         columns = ", ".join(
