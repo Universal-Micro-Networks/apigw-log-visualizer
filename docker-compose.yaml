@@ -1,0 +1,42 @@
+version: '3'
+services:
+  postgres:
+    container_name: postgres
+    hostname: postgres
+    image: postgres:16
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - volume_postgres:/var/lib/postgresql/data
+      - ./for_develop/postgres/init:/docker-entrypoint-initdb.d
+    env_file:
+      - ./for_develop/postgres/config/postgres.env
+  pgadmin:
+    container_name: pgadmin
+    hostname: pgadmin
+    image: dpage/pgadmin4:latest
+    ports:
+      - 5050:80
+    volumes:
+      - volume_pgadmin:/var/lib/pgadmin
+    env_file:
+      - ./for_develop/pgadmin/config/pgadmin.env
+    depends_on:
+      - postgres
+  metabase:
+    container_name: metabase
+    platform: linux/amd64
+    hostname: metabase
+    image: metabase/metabase
+    env_file:
+      - ./for_develop/metabase/config/metabase_database.env
+    ports:
+      - 3000:3000
+    depends_on:
+      - postgres
+volumes:
+  volume_postgres:
+    name: vpg
+  volume_pgadmin:
+    name: vpga
