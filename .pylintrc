@@ -24,7 +24,7 @@ ignore=CVS
 
 # Add files or directories matching the regex patterns to the ignore-list. The
 # regex matches against paths.
-ignore-paths=for_develop/*,packages/shared/shared/alembic/versions/*
+ignore-paths=for_develop/*,packages/log_collection/alembic/versions/*
 
 # Files or directories matching the regex patterns are skipped. The regex
 # matches against base names, not paths.
