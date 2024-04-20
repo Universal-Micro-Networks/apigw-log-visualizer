@@ -118,7 +118,7 @@ class ApigwLog:
                             is_first = False
                         else:
                             f.write(",")
-                        json_obj = str(row).split(" ", 1)[1] + ","
+                        json_obj = str(row).split(" ", 1)[1]
                         f.write(json_obj)
                 f.write("]")
 
