@@ -41,7 +41,9 @@ make docker-reset
 
 ## Batchの実行
 
-### 前提条件 AWSへの接続設定が済んでおり、Profileがわかっていること
+### S3からログファイルのダウンロード
+
+#### 前提条件: AWSへの接続設定が済んでおり、Profileがわかっていること
 
 ```shell: terminal
 AWS_PROFILE=<AWS_PROFILE> python packages/log_collection/presentation/apigw_log.py -t "fetch_log"
@@ -51,6 +53,12 @@ AWS_PROFILE=<AWS_PROFILE> python packages/log_collection/presentation/apigw_log.
 
 ```shell: terminal
 Enter MFA code for arn:aws:iam::xxxxxxxxxxxx:mfa/xxxxxxxxxxx:
+```
+
+### ログファイルをデータベースに取り込み
+
+```shell: terminal
+python packages/log_collection/presentation/apigw_log.py -t "load_log"
 ```
 
 以上
