@@ -39,4 +39,18 @@ make docker-reset
      - "Auto-save edited files to trigger the watcher" のチェックを外す
      - "Trigger the watcher on external changes" のチェックを外す
 
+## Batchの実行
+
+### 前提条件 AWSへの接続設定が済んでおり、Profileがわかっていること
+
+```shell: terminal
+AWS_PROFILE=<AWS_PROFILE> python packages/log_collection/presentation/apigw_log.py -t "fetch_log"
+```
+
+コマンド入力後、MFAを求められる場合があるので、そのときはスマートフォンのMFAアプリでワンタイムパスワードを入力する。
+
+```shell: terminal
+Enter MFA code for arn:aws:iam::xxxxxxxxxxxx:mfa/xxxxxxxxxxx:
+```
+
 以上
