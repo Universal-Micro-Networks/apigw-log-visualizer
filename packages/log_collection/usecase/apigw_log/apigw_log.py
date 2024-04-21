@@ -3,6 +3,7 @@ import gzip
 import io
 import json
 import os
+import shutil
 import uuid
 from datetime import datetime, timedelta
 from typing import Any, Generator, TextIO
@@ -70,6 +71,7 @@ class ApigwLog:
         for prefix in _prefixes:
             print(f"{_bucket}:{prefix}")
             while True:
+                print(f"list objects with marker:{_marker}")
                 response = self.s3.list_objects(
                     Bucket=_bucket, Prefix=prefix, Marker=_marker
                 )
@@ -130,7 +132,7 @@ class ApigwLog:
     async def load_log_data_to_db(self) -> None:
         """load log data to DB"""
         async_session = get_db_connection()
-
+        os.makedirs("logs/loaded", exist_ok=True)
         log_dict_list = self._get_log_data_from_files()
 
         await self._insert_log_data_to_db(async_session, log_dict_list)
@@ -142,10 +144,15 @@ class ApigwLog:
             Generator[str, Any, None]: log file generator
         """
         files = glob.glob("logs/*.json")
+        file_num = len(files)
+        loaded_file_num = 1
         for file in files:
             with open(file, mode="r", encoding="UTF-8") as f:
                 log_dict_list = json.load(f)
                 yield from log_dict_list
+            shutil.move(file, "logs/loaded/")
+            print(f"{loaded_file_num:,}/{file_num:,} are loaded")
+            loaded_file_num = loaded_file_num + 1
 
     async def _insert_log_data_to_db(
         self, async_session, log_dict_list: Generator[dict[str, Any], Any, None]
@@ -160,7 +167,7 @@ class ApigwLog:
             access_log_data = ApigwLogSchema(**log_dict)
             async with async_session() as session:
                 async with session.begin():
-                    access_log_model = AccessLogModel(**access_log_data.dict())
+                    access_log_model = AccessLogModel(**access_log_data.model_dump())
                     session.add(access_log_model)
                 await session.commit()
 
