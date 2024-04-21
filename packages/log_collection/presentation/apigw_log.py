@@ -11,11 +11,11 @@ class BatchType(Enum):
     LOAD_LOG = "load_log"
 
 
-async def execute(
+def execute(
     batch_type: BatchType,
-    environment: str,
     str_start_date: str | None,
     str_end_date: str | None,
+    environment: str = "dev",
     marker: str = "",
 ) -> None:
     """execute batch process designated by batch_type"""
@@ -33,7 +33,14 @@ async def execute(
         )
 
         apigw_log.fatch_from_s3(environment, start_date, end_date, marker)
-    elif batch_type == BatchType.LOAD_LOG:
+
+
+async def execute_async(
+    batch_type: BatchType,
+) -> None:
+    """execute batch process designated by batch_type"""
+    apigw_log = ApigwLog()
+    if batch_type == BatchType.LOAD_LOG:
         await apigw_log.load_log_data_to_db()
 
 
@@ -43,7 +50,7 @@ if __name__ == "__main__":
         "-t", "--type", required=True, help="batch type (fetch_log/load_log)"
     )
     parser.add_argument(
-        "-e", "--environment", required=True, help="environment name (dev/stg/prod)"
+        "-e", "--environment", help="environment name (dev/stg/prod) default: dev"
     )
     parser.add_argument(
         "-S", "--start_date", help="start date from when log files stored, YYYY-MM-DD"
@@ -58,13 +65,18 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(
+    if args.type == "fetch_log":
         execute(
             BatchType(args.type),
+            args.start_date,
+            args.end_date,
             args.environment,
-            str_start_date=args.start_date,
-            str_end_date=args.end_date,
-            marker=args.marker,
+            args.marker,
         )
-    )
+    elif args.type == "load_log":
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(
+            execute_async(
+                BatchType(args.type),
+            )
+        )

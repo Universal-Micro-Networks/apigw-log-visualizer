@@ -12,5 +12,5 @@ docker-reset:
 	docker-compose down --volumes
 fetch-log-%:
 	python packages/log_collection/presentation/apigw_log.py -t "fetch_log" -e ${@:fetch-log-%=%} -S $(START_DATE) -E $(END_DATE) -m $(MARKER)
-load-log-%:
-	python packages/log_collection/presentation/apigw_log.py -t "load_log" -e ${@:load-log-%=%}
+load-log:
+	python packages/log_collection/presentation/apigw_log.py -t "load_log"
