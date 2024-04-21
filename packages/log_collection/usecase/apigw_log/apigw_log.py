@@ -9,9 +9,9 @@ from typing import Any, Generator, TextIO
 
 import boto3
 from botocore.exceptions import RefreshWithMFAUnsupportedError
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from packages.log_collection.domain.apigw_log.apigw_log_schema import ApigwLogSchema
+from packages.log_collection.infra.apigw_analysis_db import get_db_connection
 from packages.log_collection.infra.model.access_log import AccessLog as AccessLogModel
 
 
@@ -20,7 +20,7 @@ class ApigwLog:
 
     def fatch_from_s3(
         self, environment: str, start_date: datetime, end_date: datetime, marker: str
-    ):
+    ) -> None:
         """fetch log files from S3
 
         Args:
@@ -29,8 +29,8 @@ class ApigwLog:
             end_date (datetime): date before when log files are collected
             marker (str, optional): S3 marker to restart this function where ended last time. Defaults to "".
         """
-        environment = "prod"
-        bucket = f"{environment}-iapigw-access-logs"
+        bucket_name_suffix = os.getenv("BUCKET_NAME_SUFFIX", "iapigw-access-logs")
+        bucket = f"{environment}-{bucket_name_suffix}"
         prefixes = self._get_prefixes(start_date, end_date)
         files = self._get_s3_objects(bucket, prefixes, marker)
         self._save_logfile_to_json(files)
@@ -104,16 +104,16 @@ class ApigwLog:
 
     def _save_logfile_to_json(
         self, _files: Generator[gzip.GzipFile | TextIO, Any, None]
-    ):
+    ) -> None:
         """save log file to csv
 
         Args:
             _files (Generator[gzip.GzipFile  |  TextIO, Any, None]): log file
         """
         for file in _files:
-            randam_filename = uuid.uuid4()
+            random_filename = uuid.uuid4()
             os.makedirs("logs", exist_ok=True)
-            with open(f"logs/{randam_filename}.json", mode="w", encoding="UTF-8") as f:
+            with open(f"logs/{random_filename}.json", mode="w", encoding="UTF-8") as f:
                 rows = file.readlines()
                 is_first = True
                 f.write("[")
@@ -127,34 +127,63 @@ class ApigwLog:
                         f.write(json_obj)
                 f.write("]")
 
-    async def load_to_db(self) -> None:
+    async def load_log_data_to_db(self) -> None:
         """load log data to DB"""
-        engine = create_async_engine(
-            "postgresql+asyncpg://log_analysis_user:Fq3MdiTt@localhost/log_analysis_db",
-            echo=False,
-        )
-        async_session = async_sessionmaker(engine, expire_on_commit=False)
+        async_session = get_db_connection()
 
+        log_dict_list = self._get_log_data_from_files()
+
+        await self._insert_log_data_to_db(async_session, log_dict_list)
+
+    def _get_log_data_from_files(self) -> Generator[dict[str, Any], Any, None]:
+        """Get log files
+
+        Yields:
+            Generator[str, Any, None]: log file generator
+        """
         files = glob.glob("logs/*.json")
         for file in files:
             with open(file, mode="r", encoding="UTF-8") as f:
                 log_dict_list = json.load(f)
-                for log_dict in log_dict_list:
-                    log_dict["requestTime"] = datetime.fromtimestamp(
-                        int(log_dict["requestTimeEpoch"]) / 1000
-                    )
-                    log_dict["integrationStatus"] = _try_conv_str_to_int(
-                        log_dict["integrationStatus"]
-                    )
-                    log_dict["integrationLatency"] = _try_conv_str_to_int(
-                        log_dict["integrationLatency"]
-                    )
-                    access_log_data = ApigwLogSchema(**log_dict)
-                    async with async_session() as session:
-                        async with session.begin():
-                            access_log_model = AccessLogModel(**access_log_data.dict())
-                            session.add(access_log_model)
-                        await session.commit()
+                yield from log_dict_list
+
+    async def _insert_log_data_to_db(
+        self, async_session, log_dict_list: Generator[dict[str, Any], Any, None]
+    ) -> None:
+        """load log data to DB
+
+        Args:
+            log_dict (dict): log data
+        """
+        for log_dict in log_dict_list:
+            log_dict = self._correct_log_data(log_dict)
+            access_log_data = ApigwLogSchema(**log_dict)
+            async with async_session() as session:
+                async with session.begin():
+                    access_log_model = AccessLogModel(**access_log_data.dict())
+                    session.add(access_log_model)
+                await session.commit()
+
+    def _correct_log_data(self, log_dict: dict) -> dict:
+        """Correct log data
+
+        Args:
+            log_dict (dict): source log data
+
+        Returns:
+            dict: corrected log data if needed
+        """
+        # it's alomost impossible to convert requestTime string to datetime object, so I get requestTime from requestTimeEpoch
+        log_dict["requestTime"] = datetime.fromtimestamp(
+            float(log_dict["requestTimeEpoch"]) / 1000
+        )
+        log_dict["integrationStatus"] = _try_conv_str_to_int(
+            log_dict["integrationStatus"]
+        )
+        log_dict["integrationLatency"] = _try_conv_str_to_int(
+            log_dict["integrationLatency"]
+        )
+        return log_dict
 
 
 class ApigwLogError(Exception):
@@ -164,7 +193,7 @@ class ApigwLogError(Exception):
         Exception (_type_): Base Exception
     """
 
-    def __init__(self, message: str):
+    def __init__(self, message: str) -> None:
         """_summary_
 
         Args:
@@ -172,7 +201,7 @@ class ApigwLogError(Exception):
         """
         self.message = message
 
-    def __str__(self):
+    def __str__(self) -> str:
         """_summary_
 
         Returns:
@@ -181,7 +210,7 @@ class ApigwLogError(Exception):
         return self.message
 
 
-def _valid_gzip_format(file_obj: bytes):
+def _valid_gzip_format(file_obj: bytes) -> bool:
     """Check if gzip file format is valid
 
     Args:

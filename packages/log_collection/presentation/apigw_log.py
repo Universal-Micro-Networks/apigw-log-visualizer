@@ -21,7 +21,7 @@ async def execute(batch_type: BatchType) -> None:
 
         apigw_log.fatch_from_s3("prod", start_date, end_date, marker)
     elif batch_type == BatchType.LOAD_LOG:
-        await apigw_log.load_to_db()
+        await apigw_log.load_log_data_to_db()
 
 
 if __name__ == "__main__":
