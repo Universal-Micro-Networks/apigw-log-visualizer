@@ -1,0 +1,17 @@
+[
+    {
+        "str_key": "str_value",
+        "int_key": 0,
+        "bool_key": true
+    },
+    {
+        "str_key": "str_value",
+        "int_key": 0,
+        "bool_key": true
+    },
+    {
+        "str_key": "str_value",
+        "int_key": 0,
+        "bool_key": true
+    }
+]

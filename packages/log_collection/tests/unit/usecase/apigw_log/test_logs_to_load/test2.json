@@ -1,0 +1,17 @@
+[
+    {
+        "str_key": "漢字",
+        "int_key": 1,
+        "bool_key": false
+    },
+    {
+        "str_key": "\n",
+        "int_key": 2,
+        "bool_key": false
+    },
+    {
+        "str_key": "\r",
+        "int_key": 3,
+        "bool_key": false
+    }
+]
