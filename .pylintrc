@@ -32,7 +32,7 @@ ignore-patterns=
 
 # Python code to execute, usually for sys.path manipulation such as
 # pygtk.require().
-init-hook="from pylint.config import find_default_config_files; import os, sys;sys.path.append(os.path.dirname(next(config_file for config_file in  find_default_config_files() if config_file.name.endswith('pylintrc'))));sys.path.append('packages/aillis_admin_app/');sys.path.append('packages/user_app/');sys.path.append('packages/camera_app/');sys.path.append('packages/shared/');sys.path.append('packages/inference_lambda/');"
+init-hook="from pylint.config import find_default_config_files; import os, sys;sys.path.append(os.path.dirname(next(config_file for config_file in  find_default_config_files() if config_file.name.endswith('pylintrc'))));sys.path.append('packages/log_collection/');sys.path.append('packages/shared/');"
 
 # Use multiple processes to speed up Pylint. Specifying 0 will auto-detect the
 # number of processors available to use.
