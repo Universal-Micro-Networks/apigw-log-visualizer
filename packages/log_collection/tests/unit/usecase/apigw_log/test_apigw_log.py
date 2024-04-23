@@ -103,7 +103,7 @@ def test_correct_log_data() -> None:
 
     assert "requestTime" in result
     assert isinstance(result["requestTime"], datetime)
-    # compare only seconds
+    # compare only seconds because milisecond is expresed in float and makes round error
     assert (
         int(result["requestTime"].timestamp()) / 1000
         == int(expected["requestTime"].timestamp()) / 1000
